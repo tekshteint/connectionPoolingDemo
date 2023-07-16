@@ -1,0 +1,543 @@
+Hey everyone, I'm currently working on a small project to try and see how I can affect connection pooling negatively (keeping the pool size at 1) and I'm using Jaeger tracing along with OpenTelemetry in a Spring Boot project. I have an API call that is just calling another method to do some SQL selects. This API is being called from a shell file with curl to load the application. I'm seeing in my traces a long break between when I get the connection to when something actually happens and I want to see more details as to what is going on under the hood of it all.
+
+Here's an example Jaeger trace
+```
+{
+    "data": [
+        {
+            "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+            "spans": [
+                {
+                    "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                    "spanID": "8115026935dcbb05",
+                    "operationName": "GET /nativeSQL",
+                    "references": [],
+                    "startTime": 1689195747759109,
+                    "duration": 6765698,
+                    "tags": [
+                        {
+                            "key": "otel.library.name",
+                            "type": "string",
+                            "value": "io.opentelemetry.tomcat-10.0"
+                        },
+                        {
+                            "key": "otel.library.version",
+                            "type": "string",
+                            "value": "1.27.0-alpha"
+                        },
+                        {
+                            "key": "code.namespace",
+                            "type": "string",
+                            "value": "com.model.EmployeeController"
+                        },
+                        {
+                            "key": "net.sock.host.addr",
+                            "type": "string",
+                            "value": "127.0.0.1"
+                        },
+                        {
+                            "key": "net.sock.peer.port",
+                            "type": "int64",
+                            "value": 50422
+                        },
+                        {
+                            "key": "http.route",
+                            "type": "string",
+                            "value": "/nativeSQL"
+                        },
+                        {
+                            "key": "thread.id",
+                            "type": "int64",
+                            "value": 60
+                        },
+                        {
+                            "key": "http.status_code",
+                            "type": "int64",
+                            "value": 200
+                        },
+                        {
+                            "key": "net.protocol.name",
+                            "type": "string",
+                            "value": "http"
+                        },
+                        {
+                            "key": "http.method",
+                            "type": "string",
+                            "value": "GET"
+                        },
+                        {
+                            "key": "http.response_content_length",
+                            "type": "int64",
+                            "value": 9
+                        },
+                        {
+                            "key": "net.host.port",
+                            "type": "int64",
+                            "value": 9753
+                        },
+                        {
+                            "key": "net.protocol.version",
+                            "type": "string",
+                            "value": "1.1"
+                        },
+                        {
+                            "key": "http.scheme",
+                            "type": "string",
+                            "value": "http"
+                        },
+                        {
+                            "key": "user_agent.original",
+                            "type": "string",
+                            "value": "curl/7.78.0"
+                        },
+                        {
+                            "key": "net.host.name",
+                            "type": "string",
+                            "value": "localhost"
+                        },
+                        {
+                            "key": "http.target",
+                            "type": "string",
+                            "value": "/nativeSQL"
+                        },
+                        {
+                            "key": "net.sock.peer.addr",
+                            "type": "string",
+                            "value": "127.0.0.1"
+                        },
+                        {
+                            "key": "code.function",
+                            "type": "string",
+                            "value": "testNativeSQL"
+                        },
+                        {
+                            "key": "thread.name",
+                            "type": "string",
+                            "value": "http-nio-9753-exec-22"
+                        },
+                        {
+                            "key": "span.kind",
+                            "type": "string",
+                            "value": "server"
+                        },
+                        {
+                            "key": "internal.span.format",
+                            "type": "string",
+                            "value": "proto"
+                        }
+                    ],
+                    "logs": [],
+                    "processID": "p1",
+                    "warnings": null
+                },
+                {
+                    "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                    "spanID": "9e4fb7790827b2d5",
+                    "operationName": "EmployeeController.testNativeSQL",
+                    "references": [
+                        {
+                            "refType": "CHILD_OF",
+                            "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                            "spanID": "8115026935dcbb05"
+                        }
+                    ],
+                    "startTime": 1689195747760511,
+                    "duration": 6763548,
+                    "tags": [
+                        {
+                            "key": "otel.library.name",
+                            "type": "string",
+                            "value": "io.opentelemetry.spring-webmvc-6.0"
+                        },
+                        {
+                            "key": "otel.library.version",
+                            "type": "string",
+                            "value": "1.27.0-alpha"
+                        },
+                        {
+                            "key": "thread.id",
+                            "type": "int64",
+                            "value": 60
+                        },
+                        {
+                            "key": "thread.name",
+                            "type": "string",
+                            "value": "http-nio-9753-exec-22"
+                        },
+                        {
+                            "key": "span.kind",
+                            "type": "string",
+                            "value": "internal"
+                        },
+                        {
+                            "key": "internal.span.format",
+                            "type": "string",
+                            "value": "proto"
+                        }
+                    ],
+                    "logs": [],
+                    "processID": "p1",
+                    "warnings": null
+                },
+                {
+                    "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                    "spanID": "ea1cfebd388db27c",
+                    "operationName": "EmployeeController.getConnection",
+                    "references": [
+                        {
+                            "refType": "CHILD_OF",
+                            "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                            "spanID": "9e4fb7790827b2d5"
+                        }
+                    ],
+                    "startTime": 1689195747760742,
+                    "duration": 400788,
+                    "tags": [
+                        {
+                            "key": "otel.library.name",
+                            "type": "string",
+                            "value": "io.opentelemetry.opentelemetry-instrumentation-annotations-1.16"
+                        },
+                        {
+                            "key": "otel.library.version",
+                            "type": "string",
+                            "value": "1.27.0-alpha"
+                        },
+                        {
+                            "key": "code.namespace",
+                            "type": "string",
+                            "value": "com.model.EmployeeController"
+                        },
+                        {
+                            "key": "code.function",
+                            "type": "string",
+                            "value": "getConnection"
+                        },
+                        {
+                            "key": "thread.id",
+                            "type": "int64",
+                            "value": 60
+                        },
+                        {
+                            "key": "thread.name",
+                            "type": "string",
+                            "value": "http-nio-9753-exec-22"
+                        },
+                        {
+                            "key": "span.kind",
+                            "type": "string",
+                            "value": "internal"
+                        },
+                        {
+                            "key": "internal.span.format",
+                            "type": "string",
+                            "value": "proto"
+                        }
+                    ],
+                    "logs": [],
+                    "processID": "p1",
+                    "warnings": null
+                },
+                {
+                    "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                    "spanID": "8ec14e0bc4e27e0a",
+                    "operationName": "EmployeeController.executeSQLNativeSelect",
+                    "references": [
+                        {
+                            "refType": "CHILD_OF",
+                            "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                            "spanID": "9e4fb7790827b2d5"
+                        }
+                    ],
+                    "startTime": 1689195754317540,
+                    "duration": 205273,
+                    "tags": [
+                        {
+                            "key": "otel.library.name",
+                            "type": "string",
+                            "value": "io.opentelemetry.opentelemetry-instrumentation-annotations-1.16"
+                        },
+                        {
+                            "key": "otel.library.version",
+                            "type": "string",
+                            "value": "1.27.0-alpha"
+                        },
+                        {
+                            "key": "code.namespace",
+                            "type": "string",
+                            "value": "com.model.EmployeeController"
+                        },
+                        {
+                            "key": "code.function",
+                            "type": "string",
+                            "value": "executeSQLNativeSelect"
+                        },
+                        {
+                            "key": "thread.id",
+                            "type": "int64",
+                            "value": 60
+                        },
+                        {
+                            "key": "thread.name",
+                            "type": "string",
+                            "value": "http-nio-9753-exec-22"
+                        },
+                        {
+                            "key": "span.kind",
+                            "type": "string",
+                            "value": "internal"
+                        },
+                        {
+                            "key": "internal.span.format",
+                            "type": "string",
+                            "value": "proto"
+                        }
+                    ],
+                    "logs": [],
+                    "processID": "p1",
+                    "warnings": null
+                },
+                {
+                    "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                    "spanID": "59b4987b42dc9639",
+                    "operationName": "SELECT employees.employee",
+                    "references": [
+                        {
+                            "refType": "CHILD_OF",
+                            "traceID": "69d38df52317cf9dcfe8c176b1d88e71",
+                            "spanID": "8ec14e0bc4e27e0a"
+                        }
+                    ],
+                    "startTime": 1689195754317770,
+                    "duration": 3041,
+                    "tags": [
+                        {
+                            "key": "otel.library.name",
+                            "type": "string",
+                            "value": "io.opentelemetry.jdbc"
+                        },
+                        {
+                            "key": "otel.library.version",
+                            "type": "string",
+                            "value": "1.27.0-alpha"
+                        },
+                        {
+                            "key": "db.connection_string",
+                            "type": "string",
+                            "value": "postgresql://localhost:5432"
+                        },
+                        {
+                            "key": "net.peer.name",
+                            "type": "string",
+                            "value": "localhost"
+                        },
+                        {
+                            "key": "db.user",
+                            "type": "string",
+                            "value": "postgres"
+                        },
+                        {
+                            "key": "db.statement",
+                            "type": "string",
+                            "value": "SELECT * FROM employee"
+                        },
+                        {
+                            "key": "db.system",
+                            "type": "string",
+                            "value": "postgresql"
+                        },
+                        {
+                            "key": "thread.id",
+                            "type": "int64",
+                            "value": 60
+                        },
+                        {
+                            "key": "db.operation",
+                            "type": "string",
+                            "value": "SELECT"
+                        },
+                        {
+                            "key": "db.sql.table",
+                            "type": "string",
+                            "value": "employee"
+                        },
+                        {
+                            "key": "net.peer.port",
+                            "type": "int64",
+                            "value": 5432
+                        },
+                        {
+                            "key": "thread.name",
+                            "type": "string",
+                            "value": "http-nio-9753-exec-22"
+                        },
+                        {
+                            "key": "db.name",
+                            "type": "string",
+                            "value": "employees"
+                        },
+                        {
+                            "key": "span.kind",
+                            "type": "string",
+                            "value": "client"
+                        },
+                        {
+                            "key": "internal.span.format",
+                            "type": "string",
+                            "value": "proto"
+                        }
+                    ],
+                    "logs": [],
+                    "processID": "p1",
+                    "warnings": null
+                }
+            ],
+            "processes": {
+                "p1": {
+                    "serviceName": "demo",
+                    "tags": [
+                        {
+                            "key": "digma.agent.version",
+                            "type": "string",
+                            "value": "0.6.14"
+                        },
+                        {
+                            "key": "digma.environment",
+                            "type": "string",
+                            "value": "Dev"
+                        },
+                        {
+                            "key": "host.arch",
+                            "type": "string",
+                            "value": "amd64"
+                        },
+                        {
+                            "key": "host.name",
+                            "type": "string",
+                            "value": "Tom-surfacePro8"
+                        },
+                        {
+                            "key": "os.description",
+                            "type": "string",
+                            "value": "Windows 11 10.0"
+                        },
+                        {
+                            "key": "os.type",
+                            "type": "string",
+                            "value": "windows"
+                        },
+                        {
+                            "key": "process.command_line",
+                            "type": "string",
+                            "value": "C:\\Program Files\\Java\\jdk-18.0.2.1\\bin\\java.exe -javaagent:C:\\Users\\tom\\AppData\\Local\\Temp\\temp-digma-otel-jars\\opentelemetry-javaagent.jar -Dotel.javaagent.extensions=C:\\Users\\tom\\AppData\\Local\\Temp\\temp-digma-otel-jars\\digma-otel-agent-extension.jar -Dotel.traces.exporter=otlp -Dotel.metrics.exporter=none -Dotel.exporter.otlp.traces.endpoint=http://localhost:4317 -Dotel.service.name=demo -Dotel.instrumentation.jdbc-datasource.enabled=true -Dotel.instrumentation.jdbc-datasource.enabled=true -javaagent:C:\\Users\\tom\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\231.9011.34\\lib\\idea_rt.jar=50313:C:\\Users\\tom\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\231.9011.34\\bin -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 com.DemoApplication --warning-mode all"
+                        },
+                        {
+                            "key": "process.executable.path",
+                            "type": "string",
+                            "value": "C:\\Program Files\\Java\\jdk-18.0.2.1\\bin\\java.exe"
+                        },
+                        {
+                            "key": "process.pid",
+                            "type": "int64",
+                            "value": 8528
+                        },
+                        {
+                            "key": "process.runtime.description",
+                            "type": "string",
+                            "value": "Oracle Corporation Java HotSpot(TM) 64-Bit Server VM 18.0.2.1+1-1"
+                        },
+                        {
+                            "key": "process.runtime.name",
+                            "type": "string",
+                            "value": "Java(TM) SE Runtime Environment"
+                        },
+                        {
+                            "key": "process.runtime.version",
+                            "type": "string",
+                            "value": "18.0.2.1+1-1"
+                        },
+                        {
+                            "key": "telemetry.auto.version",
+                            "type": "string",
+                            "value": "1.27.0"
+                        },
+                        {
+                            "key": "telemetry.sdk.language",
+                            "type": "string",
+                            "value": "java"
+                        },
+                        {
+                            "key": "telemetry.sdk.name",
+                            "type": "string",
+                            "value": "opentelemetry"
+                        },
+                        {
+                            "key": "telemetry.sdk.version",
+                            "type": "string",
+                            "value": "1.27.0"
+                        }
+                    ]
+                }
+            },
+            "warnings": null
+        }
+    ],
+    "total": 0,
+    "limit": 0,
+    "offset": 0,
+    "errors": null
+}
+```
+
+the shell file:
+```
+THREAD_COUNT=20
+
+callNative() {
+ responseNative=$(curl "http://localhost:9753/nativeSQL")
+}
+
+for ((i=0; i<$THREAD_COUNT; i++)); do
+   callNative &
+done
+
+wait
+```
+
+and the Java code:
+```
+@GetMapping("/nativeSQL")
+    public String testNativeSQL() {
+        executeSQLNativeSelect();
+
+        return "nativeSQL";
+    }
+
+@WithSpan
+    public synchronized void executeSQLNativeSelect() {
+        try (Connection connection = datasource.getConnection()){
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM employee");
+            ps.execute();
+            Thread.sleep(200);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+@WithSpan
+    public Connection getConnection(){
+        String DB_URL = "jdbc:postgresql://localhost:5432/employees";
+        String DB_USERNAME = "postgres";
+        String DB_PASSWORD = "admin";
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(DB_URL, DB_USERNAME, DB_PASSWORD);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return connection;
+    }
+```

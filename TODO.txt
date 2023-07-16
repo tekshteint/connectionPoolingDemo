@@ -1,0 +1,9 @@
+Figure out how to view more details on each span
+	This is because the parent method is just taking up a large amount of time seemingly nowhere
+
+is each request just "sitting" in the api waiting for its turn?
+	https://stackoverflow.com/questions/58596558/synchronize-request-responsein-java
+
+
+session per request - Need to remove hibernate entirely
+	https://www.tutorialspoint.com/postgresql/postgresql_java.htm
