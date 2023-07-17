@@ -1,4 +1,4 @@
-shell_files=("sqlLoadNew.sh" "sqlLoad.sh", "sqlLoadNew.sh")
+shell_files=("hibernateLoad.sh" "sqlLoad.sh")
 
 for file in "${shell_files[@]}"; do
     echo "Running $file"

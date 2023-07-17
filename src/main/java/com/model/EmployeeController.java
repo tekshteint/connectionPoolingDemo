@@ -1,8 +1,15 @@
 package com.model;
 
 import java.sql.*;
+import java.util.List;
+import java.util.Map;
 
 import com.db.PostgresConnect;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
+import org.hibernate.*;
+import org.hibernate.cfg.Configuration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
@@ -15,6 +22,10 @@ public class EmployeeController {
 
     @Autowired
     private final DataSource datasource;
+    @Autowired
+    private EmployeeRepository employeeRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
     private boolean setup = false;
 
     @Autowired
@@ -37,12 +48,7 @@ public class EmployeeController {
 
     @GetMapping("/nativeSQL")
     public String testNativeSQL() throws InterruptedException {
-        //long startTime = System.nanoTime();
         Connection connection = getConnection();
-/*        long endTime = System.nanoTime();
-        long duration = (endTime - startTime) / 1000000;
-
-        System.out.println("Duration: " + duration);*/
         executeSQLNativeSelect(connection);
 
         try {
@@ -54,37 +60,10 @@ public class EmployeeController {
         return "nativeSQL";
     }
 
-    @GetMapping("/nativeSQLNew")
-    public String testNativeSQLNew() {
-        System.out.print("Before execution: ");
-        printStatus();
-
-        executeSQLNativeSelectNew();
-        System.out.println("After execution: ");
-        printStatus();
-
-        return "nativeSQLNew";
-    }
-
-
-
-    @WithSpan
-    public synchronized void executeSQLNativeSelectNew() {
-        try (Connection connection = datasource.getConnection()){
-            //Statement statement = connection.createStatement();
-            PreparedStatement ps = connection.prepareStatement("SELECT * FROM employee");
-            ps.execute();
-            Thread.sleep(200);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void printStatus() {
-        System.out.println(Thread.currentThread().getId() + ": " + Thread.currentThread().getState());
+    @GetMapping("/hibernate")
+    public String testHibernateSQL() {
+        nativeHibernateQuery();
+        return "hibernate";
     }
 
     @WithSpan
@@ -141,6 +120,34 @@ public class EmployeeController {
             throw new RuntimeException(e);
         }
     }
+
+/*    @WithSpan
+    public void nativeHibernateQuery() {
+        try {
+            String sqlStatement = "SELECT * FROM owners";
+            Query query = entityManager.createNativeQuery(sqlStatement);
+            @SuppressWarnings("unchecked")
+            List<Object[]> resultList = query.getResultList();
+            Thread.sleep(200);
+        } catch (InterruptedException e){
+            throw new RuntimeException(e);
+        }*/
+
+
+    @WithSpan
+    public void nativeHibernateQuery() {
+        try {
+            String sqlStatement = "SELECT * FROM employees";
+            Query query = entityManager.createNativeQuery(sqlStatement);
+            @SuppressWarnings("unchecked")
+            List<Object[]> resultList = query.getResultList();
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
 
 }
 
