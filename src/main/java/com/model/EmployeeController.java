@@ -1,11 +1,9 @@
 package com.model;
 
 import java.sql.*;
-import java.util.Set;
 
 import com.db.PostgresConnect;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,23 +36,21 @@ public class EmployeeController {
     }
 
     @GetMapping("/nativeSQL")
-    public String testNativeSQL() {
-        System.out.print("Before execution: ");
-        printStatus();
-
+    public String testNativeSQL() throws InterruptedException {
+        //long startTime = System.nanoTime();
         Connection connection = getConnection();
-        System.out.println();
-		executeSQLNativeSelect(connection);
+/*        long endTime = System.nanoTime();
+        long duration = (endTime - startTime) / 1000000;
+
+        System.out.println("Duration: " + duration);*/
+        executeSQLNativeSelect(connection);
 
         try {
+            Thread.sleep(200);
             connection.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
-        System.out.println("After execution: ");
-        printStatus();
-
         return "nativeSQL";
     }
 
@@ -92,17 +88,14 @@ public class EmployeeController {
     }
 
     @WithSpan
-    public synchronized void executeSQLNativeSelect(Connection connection) {
+    public void executeSQLNativeSelect(Connection connection) {
         try {
             Statement statement = connection.createStatement();
             PreparedStatement ps = connection.prepareStatement("SELECT * FROM employee");
             ps.execute();
-            Thread.sleep(200);
 
         } catch (SQLException e) {
             e.printStackTrace();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
 
