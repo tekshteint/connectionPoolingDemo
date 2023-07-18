@@ -1,4 +1,4 @@
-THREAD_COUNT=20
+THREAD_COUNT=80
 
 callNative() {
  responseNative=$(curl "http://localhost:9753/nativeSQL")
